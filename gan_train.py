@@ -35,7 +35,7 @@ import torch.nn.init as init
 # lsun lmdb data set can be download via https://github.com/fyu/lsun
 DATA_DIR = '/home/datasets/lsun'
 VAL_DIR = '/home/datasets/lsun'
-IMAGE_DATA_SET = 'lsun' # change this to something else, e.g. 'imagenets' or 'raw' if your data is just a folder of raw images. If you use lmdb, you'll need to write the loader by yourself
+IMAGE_DATA_SET = 'lsun' # change this to something else, e.g. 'imagenets' or 'raw' if your data is just a folder of raw images. If you use lmdb, you'll need to write the loader by yourself, see load_data
 TRAINING_CLASS = ['bedroom_train'] # ignore this if you are not training on lsun, or if you want to train on other classes of lsun, then change it accordingly
 VAL_CLASS = ['bedroom_val'] # ignore this if you are not training on lsun, or if you want to train on other classes of lsun, then change it accordingly
 
@@ -44,7 +44,7 @@ if len(DATA_DIR) == 0:
 
 RESTORE_MODE = False # if True, it will load saved model from OUT_PATH and continue to train
 START_ITER = 0 # starting iteration 
-OUTPUT_PATH = '/home/cuckccc/icongenerator/pytorch-wgan/result-lsun-tmp/' # output path where result (.e.g drawing images, cost, chart) will be stored
+OUTPUT_PATH = '/path/to/store/result/' # output path where result (.e.g drawing images, cost, chart) will be stored
 MODE = 'wgan-gp' # dcgan, wgan
 DIM = 64 # Model dimensionality
 CRITIC_ITERS = 5 # How many iterations to train the critic for
