@@ -11,10 +11,10 @@ This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wg
 
 # Models
 
-* `gan_64x64.py`: This model is mainly based on `GoodGenerator` and `GoodDiscriminator` of `gan_64x64.py` model from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training). It has been trained on lsun dataset for around 100k iters.
+* `gan_64x64.py`: This model is mainly based on `GoodGenerator` and `GoodDiscriminator` of `gan_64x64.py` model from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training). It has been trained on LSUN dataset for around 100k iters.
 
 # Result
 
 Some samples after 100k iters of training
 
-![sample 1](https://github.com/jalola/improved-wgan-pytorch/samples_1.png "Sample 1")
+![sample 1](https://github.com/jalola/improved-wgan-pytorch/result/samples_1.png "Sample 1")
