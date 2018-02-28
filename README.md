@@ -17,4 +17,4 @@ This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wg
 
 Some samples after 100k iters of training
 
-![sample 1](https://github.com/jalola/improved-wgan-pytorch/result/samples_1.png "Sample 1")
+![sample 1](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_1.png "Sample 1")
