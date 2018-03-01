@@ -1,6 +1,6 @@
 # Improved Training of Wasserstein GANs in Pytorch
 
-This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wgan_training/blob/master/gan_64x64.py) from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training) but written in Pytorch code instead of Tensorflow.
+This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wgan_training/blob/master/gan_64x64.py) from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training) but written in Pytorch instead of Tensorflow.
 
 # Prerequisites
 * Python >= 3.6
@@ -17,7 +17,7 @@ This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wg
 
 Some samples after 100k iters of training
 
-![sample 1](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_1.png "Sample 1")
+![sample 1](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_1.png "Sample 1") ![sample 2](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_2.png "Sample 2")
 
 # Acknowledge
 
