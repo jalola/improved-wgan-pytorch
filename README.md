@@ -7,7 +7,8 @@ This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wg
 * Pytorch [Latest version from master branch](https://github.com/pytorch/pytorch)
 * Numpy
 * SciPy
-* tensorboardX ([installation here](https://github.com/lanpa/tensorboard-pytorch))
+* tensorboardX ([installation here](https://github.com/lanpa/tensorboard-pytorch)). It is very convenient to see costs and results during training with TensorboardX for Pytorch
+* TensorFlow for tensorboardX
 
 # Models
 
@@ -17,7 +18,12 @@ This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wg
 
 Some samples after 100k iters of training
 
-![sample 1](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_1.png "Sample 1") ![sample 2](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_2.png "Sample 2")
+Sample 1            |  Sample 2
+:-------------------------:|:-------------------------:
+![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_1.png)  |  ![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_2.png)
+
+# Testing model
+During the implementation of this model, we built a test module to compare the result between original model (Tensorflow) and our model (Pytorch). We will make it public soon
 
 # Acknowledge
 
