@@ -151,7 +151,6 @@ else:
         aG = GoodGenerator(64,64*64*3)
         aD = GoodDiscriminator(64)
         OLDGAN = False
-    
     aG.apply(weights_init)
     aD.apply(weights_init)
 
