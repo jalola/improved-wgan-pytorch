@@ -151,15 +151,6 @@ else:
         aG = GoodGenerator(64,64*64*3)
         aD = GoodDiscriminator(64)
         OLDGAN = False
-    elif MODE == 'dcgan':
-        aG = FCGenerator()
-        aD = DCGANDiscriminator()
-        OLDGAN = False
-    else:
-        aG = dcgan.DCGAN_G(DIM, 128, 3, 64, 1, 0)
-        aD = dcgan.DCGAN_D(DIM, 128, 3, 64, 1, 0)
-        OLDGAN= True
-    
     aG.apply(weights_init)
     aD.apply(weights_init)
 
