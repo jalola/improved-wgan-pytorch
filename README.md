@@ -22,8 +22,8 @@ Sample 1            |  Sample 2
 :-------------------------:|:-------------------------:
 ![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_1.png)  |  ![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_2.png)
 
-# Testing model
-During the implementation of this model, we built a test module to compare the result between original model (Tensorflow) and our model (Pytorch). We will make it public soon
+# Testing
+During the implementation of this model, we built a test module to compare the result between original model (Tensorflow) and our model (Pytorch) for every layer we implemented. It is available at [compare-tensorflow-pytorch](https://github.com/jalola/compare-tensorflow-pytorch)
 
 # Acknowledge
 
