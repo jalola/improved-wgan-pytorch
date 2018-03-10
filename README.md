@@ -10,7 +10,7 @@ This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wg
 * tensorboardX ([installation here](https://github.com/lanpa/tensorboard-pytorch)). It is very convenient to see costs and results during training with TensorboardX for Pytorch
 * TensorFlow for tensorboardX
 
-# Models
+# Model
 
 * `gan_64x64.py`: This model is mainly based on `GoodGenerator` and `GoodDiscriminator` of `gan_64x64.py` model from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training). It has been trained on LSUN dataset for around 100k iters.
 
