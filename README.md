@@ -25,7 +25,7 @@ Sample 1            |  Sample 2
 # Testing
 During the implementation of this model, we built a test module to compare the result between original model (Tensorflow) and our model (Pytorch) for every layer we implemented. It is available at [compare-tensorflow-pytorch](https://github.com/jalola/compare-tensorflow-pytorch)
 
-# Acknowledge
+# Acknowledgements
 
 * [igul222/improved_wgan_training](https://github.com/igul222/improved_wgan_training)
 * [caogang/wgan-gp](https://github.com/caogang/wgan-gp)
