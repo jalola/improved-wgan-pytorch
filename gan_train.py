@@ -141,7 +141,7 @@ def gen_rand_noise():
     return noise
 
 cuda_available = torch.cuda.is_available()
-persistant_noise = gen_rand_noise() 
+fixed_noise = gen_rand_noise() 
 
 if RESTORE_MODE:
     aG = torch.load(OUTPUT_PATH + "generator.pt")
@@ -286,7 +286,7 @@ def train():
                 dev_disc_costs.append(_dev_disc_cost)
             lib.plot.plot(OUTPUT_PATH + 'dev_disc_cost.png', np.mean(dev_disc_costs))
             lib.plot.flush()	
-            gen_images = generate_image(aG, persistant_noise)
+            gen_images = generate_image(aG, fixed_noise)
             torchvision.utils.save_image(gen_images, OUTPUT_PATH + 'samples_{}.png'.format(iteration), nrow=8, padding=2)
             grid_images = torchvision.utils.make_grid(gen_images, nrow=8, padding=2)
             writer.add_image('images', grid_images, iteration)

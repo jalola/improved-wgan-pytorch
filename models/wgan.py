@@ -154,38 +154,6 @@ class ResidualBlock(nn.Module):
 
         return shortcut + output
 
-class ReLULayer(nn.Module):
-    def __init__(self, n_in, n_out):
-        super(ReLULayer, self).__init__()
-        self.n_in = n_in
-        self.n_out = n_out
-        self.linear = nn.Linear(n_in, n_out)
-        self.relu = nn.ReLU()
-
-    def forward(self, input):
-        output = self.linear(input)
-        output = self.relu(output)
-        return output
-
-class FCGenerator(nn.Module):
-    def __init__(self, FC_DIM=512):
-        super(FCGenerator, self).__init__()
-        self.relulayer1 = ReLULayer(128, FC_DIM)
-        self.relulayer2 = ReLULayer(FC_DIM, FC_DIM)
-        self.relulayer3 = ReLULayer(FC_DIM, FC_DIM)
-        self.relulayer4 = ReLULayer(FC_DIM, FC_DIM)
-        self.linear = nn.Linear(FC_DIM, OUTPUT_DIM)
-        self.tanh = nn.Tanh()
-
-    def forward(self, input):
-        output = self.relulayer1(input)
-        output = self.relulayer2(output)
-        output = self.relulayer3(output)
-        output = self.relulayer4(output)
-        output = self.linear(output)
-        output = self.tanh(output)
-        return output
-
 class GoodGenerator(nn.Module):
     def __init__(self, dim=DIM,output_dim=OUTPUT_DIM):
         super(GoodGenerator, self).__init__()
@@ -217,58 +185,6 @@ class GoodGenerator(nn.Module):
         output = self.tanh(output)
         output = output.view(-1, OUTPUT_DIM)
         return output
-
-class DCGANDiscriminator(nn.Module):
-    def __init__(self, dim=DIM, bn=False):
-        super(DCGANDiscriminator, self).__init__()
-        self.dim = dim
-        self.bn = bn
-        #TODO: set_weights???
-
-        self.conv1 = MyConvo2d(3, self.dim, 5,stride=2)
-        self.bn1 = nn.BatchNorm2d(self.dim)
-        self.relu1 = nn.LeakyReLU(0.2)
-     
-        self.conv2 = MyConvo2d(self.dim, 2*self.dim, 5,stride=2)
-        self.bn2 = nn.BatchNorm2d(2*self.dim)
-        self.relu2 = nn.LeakyReLU(0.2)
-
-        self.conv3 = MyConvo2d(2*self.dim, 4*self.dim, 5,stride=2)
-        self.bn3 = nn.BatchNorm2d(4*self.dim)
-        self.relu3 = nn.LeakyReLU(0.2)
-
-        self.conv4 = MyConvo2d(4*self.dim, 8*self.dim, 5,stride=2)
-        self.bn4 = nn.BatchNorm2d(8*self.dim)
-        self.relu4 = nn.LeakyReLU(0.2)
-
-        self.linear = nn.Linear(4*4*8*self.dim, 1)
-
-    def forward(self, input):
-        output = input.contiguous()
-        output = output.view(-1, 3, 64 ,64)
-        output = self.conv1(output)
-        output = self.relu1(output)
-     
-        output = self.conv2(output)
-        if self.bn:
-            output = self.bn2(output)
-        output = self.relu2(output)
-
-        output = self.conv3(output)
-        if self.bn:
-            output = self.bn3(output)
-        output = self.relu3(output)
-
-        output = self.conv4(output)
-        if self.bn:
-            output = self.bn4(output)
-        output = self.relu4(output)
-     
-        output = output.view(-1, 4*4*8*self.dim)
-        output = self.linear(output)
-        output = output.view(-1)
-        return output
-
 
 class GoodDiscriminator(nn.Module):
     def __init__(self, dim=DIM):
