@@ -1,6 +1,6 @@
 # Improved Training of Wasserstein GANs in Pytorch
 
-This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wgan_training/blob/master/gan_64x64.py) from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training) but written in Pytorch instead of Tensorflow.
+This is a Pytorch implementation of [`gan_64x64.py`](https://github.com/igul222/improved_wgan_training/blob/master/gan_64x64.py) from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training).
 
 # Prerequisites
 * Python >= 3.6
@@ -12,15 +12,26 @@ This is a replication of [`gan_64x64.py`](https://github.com/igul222/improved_wg
 
 # Model
 
-* `gan_64x64.py`: This model is mainly based on `GoodGenerator` and `GoodDiscriminator` of `gan_64x64.py` model from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training). It has been trained on LSUN dataset for around 100k iters.
+* `gan_train.py`: This model is mainly based on `GoodGenerator` and `GoodDiscriminator` of `gan_64x64.py` model from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training). It has been trained on LSUN dataset for around 100k iters.
+* `congan_train.py`: ACGAN implementation, trained on 4 classes of LSUN dataset
 
 # Result
 
-Some samples after 100k iters of training
+## 1. Wgan: trained on bedroom dataset (100k iters)
 
 Sample 1            |  Sample 2
 :-------------------------:|:-------------------------:
 ![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_1.png)  |  ![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/samples_2.png)
+
+## 2. ACGAN: trained on 4 classes (100k iters)
+* dining_room: 1
+* bridge: 2
+* restaurant: 3
+* tower: 4
+
+Sample 1            |  Sample 2
+:-------------------------:|:-------------------------:
+![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/acgan_samples_1.png)  |  ![](https://github.com/jalola/improved-wgan-pytorch/raw/master/result/acgan_samples_2.png)
 
 # Testing
 During the implementation of this model, we built a test module to compare the result between original model (Tensorflow) and our model (Pytorch) for every layer we implemented. It is available at [compare-tensorflow-pytorch](https://github.com/jalola/compare-tensorflow-pytorch)
