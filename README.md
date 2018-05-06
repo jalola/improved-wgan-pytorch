@@ -17,7 +17,7 @@ This is a Pytorch implementation of [`gan_64x64.py`](https://github.com/igul222/
 
 # Result
 
-## 1. Wgan: trained on bedroom dataset (100k iters)
+## 1. WGAN: trained on bedroom dataset (100k iters)
 
 Sample 1            |  Sample 2
 :-------------------------:|:-------------------------:
