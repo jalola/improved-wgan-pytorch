@@ -4,7 +4,7 @@ This is a Pytorch implementation of [`gan_64x64.py`](https://github.com/igul222/
 
 # Prerequisites
 * Python >= 3.6
-* Pytorch [Latest version from master branch](https://github.com/pytorch/pytorch)
+* [Pytorch v0.4.0](https://github.com/pytorch/pytorch)
 * Numpy
 * SciPy
 * tensorboardX ([installation here](https://github.com/lanpa/tensorboard-pytorch)). It is very convenient to see costs and results during training with TensorboardX for Pytorch
