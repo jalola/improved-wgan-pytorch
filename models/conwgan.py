@@ -1,33 +1,8 @@
 from torch import nn
-from torch.autograd import Variable, grad
+from torch.autograd import grad
 import torch
 DIM=64
 OUTPUT_DIM=64*64*3
-class LayerNorm(nn.Module):
-    def __init__(self, features, eps=1e-5):
-        super().__init__()
-        self.gamma = nn.Parameter(torch.ones(features))
-        self.beta = nn.Parameter(torch.zeros(features))
-        self.eps = eps
-
-    def forward(self, x):
-        # mean = x.mean(-1, keepdim=True)
-        # std = x.std(-1, keepdim=True)
-        # pdb.set_trace()
-        # return self.gamma * (x - mean) / (std + self.eps) + self.beta
-        shape = [-1] + [1] * (x.dim() - 1)
-        mean = x.view(x.size(0), -1).mean(1).view(*shape)
-        std = x.view(x.size(0), -1).std(1).view(*shape)
-        # print ("to x {}".format(x.data.numpy().shape))
-        # print ("to gamma {}".format(self.gamma.shape))
-        # print ("to beta {}".format(self.beta.shape))
-        # print ("to mean {}".format(mean.data.numpy().shape))
-        # print ("to std {}".format(std.data.numpy().shape))
-
-        y = (x - mean) / (std + self.eps)
-        shape = [1, -1] + [1] * (x.dim() - 2)
-        y = self.gamma.view(*shape) * y + self.beta.view(*shape)
-        return y
 
 class MyConvo2d(nn.Module):
     def __init__(self, input_dim, output_dim, kernel_size, he_init = True,  stride = 1, bias = True):
@@ -99,7 +74,7 @@ class UpSampleConv(nn.Module):
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, input_dim, output_dim, kernel_size, resample=None):
+    def __init__(self, input_dim, output_dim, kernel_size, resample=None, hw=DIM):
         super(ResidualBlock, self).__init__()
 
         self.input_dim = input_dim
@@ -111,15 +86,15 @@ class ResidualBlock(nn.Module):
         self.relu1 = nn.ReLU()
         self.relu2 = nn.ReLU()
         if resample == 'down':
-            self.bn1 = LayerNorm(input_dim)
-            self.bn2 = LayerNorm(input_dim)
+            self.bn1 = nn.LayerNorm([input_dim, hw, hw])
+            self.bn2 = nn.LayerNorm([input_dim, hw, hw])
         elif resample == 'up':
             self.bn1 = nn.BatchNorm2d(input_dim)
             self.bn2 = nn.BatchNorm2d(output_dim)
         elif resample == None:
             #TODO: ????
             self.bn1 = nn.BatchNorm2d(output_dim)
-            self.bn2 = LayerNorm(output_dim)
+            self.bn2 = nn.LayerNorm([input_dim, hw, hw])
         else:
             raise Exception('invalid resample value')
 
@@ -218,58 +193,6 @@ class GoodGenerator(nn.Module):
         output = output.view(-1, OUTPUT_DIM)
         return output
 
-class DCGANDiscriminator(nn.Module):
-    def __init__(self, dim=DIM, bn=False):
-        super(DCGANDiscriminator, self).__init__()
-        self.dim = dim
-        self.bn = bn
-        #TODO: set_weights???
-
-        self.conv1 = MyConvo2d(3, self.dim, 5,stride=2)
-        self.bn1 = nn.BatchNorm2d(self.dim)
-        self.relu1 = nn.LeakyReLU(0.2)
-     
-        self.conv2 = MyConvo2d(self.dim, 2*self.dim, 5,stride=2)
-        self.bn2 = nn.BatchNorm2d(2*self.dim)
-        self.relu2 = nn.LeakyReLU(0.2)
-
-        self.conv3 = MyConvo2d(2*self.dim, 4*self.dim, 5,stride=2)
-        self.bn3 = nn.BatchNorm2d(4*self.dim)
-        self.relu3 = nn.LeakyReLU(0.2)
-
-        self.conv4 = MyConvo2d(4*self.dim, 8*self.dim, 5,stride=2)
-        self.bn4 = nn.BatchNorm2d(8*self.dim)
-        self.relu4 = nn.LeakyReLU(0.2)
-
-        self.linear = nn.Linear(4*4*8*self.dim, 1)
-
-    def forward(self, input):
-        output = input.contiguous()
-        output = output.view(-1, 3, 64 ,64)
-        output = self.conv1(output)
-        output = self.relu1(output)
-     
-        output = self.conv2(output)
-        if self.bn:
-            output = self.bn2(output)
-        output = self.relu2(output)
-
-        output = self.conv3(output)
-        if self.bn:
-            output = self.bn3(output)
-        output = self.relu3(output)
-
-        output = self.conv4(output)
-        if self.bn:
-            output = self.bn4(output)
-        output = self.relu4(output)
-     
-        output = output.view(-1, 4*4*8*self.dim)
-        output = self.linear(output)
-        output = output.view(-1)
-        return output
-
-
 class GoodDiscriminator(nn.Module):
     def __init__(self, dim=DIM, num_class=2):
         super(GoodDiscriminator, self).__init__()
@@ -277,17 +200,17 @@ class GoodDiscriminator(nn.Module):
         self.dim = dim
         self.num_class = num_class
         self.conv1 = MyConvo2d(3, self.dim, 3, he_init = False)
-        self.rb1 = ResidualBlock(self.dim, 2*self.dim, 3, resample = 'down')
-        self.rb2 = ResidualBlock(2*self.dim, 4*self.dim, 3, resample = 'down')
-        self.rb3 = ResidualBlock(4*self.dim, 8*self.dim, 3, resample = 'down')
-        self.rb4 = ResidualBlock(8*self.dim, 8*self.dim, 3, resample = 'down')
+        self.rb1 = ResidualBlock(self.dim, 2*self.dim, 3, resample = 'down', hw=DIM)
+        self.rb2 = ResidualBlock(2*self.dim, 4*self.dim, 3, resample = 'down', hw=int(DIM/2))
+        self.rb3 = ResidualBlock(4*self.dim, 8*self.dim, 3, resample = 'down', hw=int(DIM/4))
+        self.rb4 = ResidualBlock(8*self.dim, 8*self.dim, 3, resample = 'down', hw=int(DIM/8))
         self.ln1 = nn.Linear(4*4*8*self.dim, 1)
 
         self.ln2 = nn.Linear(4*4*8*self.dim, self.num_class)
 
     def forward(self, input):
         output = input.contiguous()
-        output = output.view(-1, 3, 64 ,64)
+        output = output.view(-1, 3, DIM, DIM)
         output = self.conv1(output)
         output = self.rb1(output)
         output = self.rb2(output)

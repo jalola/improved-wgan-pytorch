@@ -25,7 +25,7 @@ from torch import nn
 from torch import autograd
 from torch import optim
 from torchvision import transforms, datasets
-from torch.autograd import Variable, grad
+from torch.autograd import grad
 from timeit import default_timer as timer
 
 import torch.nn.init as init
@@ -44,7 +44,7 @@ if len(DATA_DIR) == 0:
 
 RESTORE_MODE = False 
 START_ITER = 0 # starting iteration 
-OUTPUT_PATH = '/path/to/result/' # output path where result (.e.g drawing images, cost, chart) will be stored
+OUTPUT_PATH = '/path/to/output/' # output path where result (.e.g drawing images, cost, chart) will be stored
 MODE = 'wgan-gp' # dcgan, wgan, wgan-gp, oldgan
 DIM = 64 # Model dimensionality
 CRITIC_ITERS = 5 # How many iterations to train the critic for
@@ -67,16 +67,16 @@ def weights_init(m):
     if isinstance(m, MyConvo2d): 
         if m.conv.weight is not None:
             if m.he_init:
-                init.kaiming_uniform(m.conv.weight)
+                init.kaiming_uniform_(m.conv.weight)
             else:
-                init.xavier_uniform(m.conv.weight)
+                init.xavier_uniform_(m.conv.weight)
         if m.conv.bias is not None:
-            init.constant(m.conv.bias, 0.0)
+            init.constant_(m.conv.bias, 0.0)
     if isinstance(m, nn.Linear):
         if m.weight is not None:
-            init.xavier_uniform(m.weight)
+            init.xavier_uniform_(m.weight)
         if m.bias is not None:
-            init.constant(m.bias, 0.0)
+            init.constant_(m.bias, 0.0)
 
 def load_data(path_to_folder, classes):
     data_transform = transforms.Compose([
@@ -95,14 +95,15 @@ def load_data(path_to_folder, classes):
 def calc_gradient_penalty(netD, real_data, fake_data):
     alpha = torch.rand(BATCH_SIZE, 1)
     alpha = alpha.expand(BATCH_SIZE, int(real_data.nelement()/BATCH_SIZE)).contiguous()
-    alpha = alpha.view(BATCH_SIZE,3,64,64)
+    alpha = alpha.view(BATCH_SIZE, 3, DIM, DIM)
     alpha = alpha.cuda() if cuda_available else alpha
 
-    interpolates = alpha * real_data.data + ((1 - alpha) * fake_data.data)
+    fake_data = fake_data.view(BATCH_SIZE, 3, DIM, DIM)
+    interpolates = alpha * real_data.detach() + ((1 - alpha) * fake_data.detach())
 
     if cuda_available:
         interpolates = interpolates.cuda()
-    interpolates = autograd.Variable(interpolates, requires_grad=True)
+    interpolates.requires_grad_(True)   
 
     disc_interpolates, _ = netD(interpolates)
 
@@ -119,10 +120,10 @@ def generate_image(netG, noise=None):
     if noise is None:
         rand_label = np.random.randint(0, NUM_CLASSES, BATCH_SIZE)
         noise = gen_rand_noise_with_label(rand_label)
-        #noise = gen_rand_noise()
-    noisev = autograd.Variable(noise, volatile=True)
+    with torch.no_grad():
+        noisev = noise
     samples = netG(noisev)
-    samples = samples.view(BATCH_SIZE, 3, 64, 64)
+    samples = samples.view(BATCH_SIZE, 3, DIM, DIM)
 
     samples = samples * 0.5 + 0.5
 
@@ -198,7 +199,7 @@ def train():
         start = timer()
         #---------------------TRAIN G------------------------
         for p in aD.parameters():
-            p.requires_grad = False  # freeze D
+            p.requires_grad_(False)  # freeze D
 
         gen_cost = None
         for i in range(GENER_ITERS):
@@ -206,12 +207,13 @@ def train():
             aG.zero_grad()
             f_label = np.random.randint(0, NUM_CLASSES, BATCH_SIZE)
             noise = gen_rand_noise_with_label(f_label)
-            noisev = Variable(noise, requires_grad=True)
-            fake_data = aG(noisev)
+            noise.requires_grad_(True)
+            fake_data = aG(noise)
             gen_cost, gen_aux_output = aD(fake_data)
 
-            #aux_label = Variable(torch.LongTensor(BATCH_SIZE), requires_grad=True).data.resize_(BATCH_SIZE).copy_(torch.from_numpy(f_label))
-            aux_label = autograd.Variable(torch.from_numpy(f_label).long().cuda())
+            aux_label = torch.from_numpy(f_label).long()
+            if cuda_available:
+                aux_label = aux_label.cuda()
             aux_errG = aux_criterion(gen_aux_output, aux_label).mean()
             gen_cost = -gen_cost.mean()
             g_cost = ACGAN_SCALE_G*aux_errG + gen_cost
@@ -222,7 +224,7 @@ def train():
         print(f'---train G elapsed time: {end - start}')
         #---------------------TRAIN D------------------------
         for p in aD.parameters():  # reset requires_grad
-            p.requires_grad = True  # they are set to False below in training G
+            p.requires_grad_(True)  # they are set to False below in training G
         for i in range(CRITIC_ITERS):
             print("Critic iter: " + str(i))
             
@@ -233,23 +235,24 @@ def train():
             f_label = np.random.randint(0, NUM_CLASSES, BATCH_SIZE)
             noise = gen_rand_noise_with_label(f_label)
             with torch.no_grad():
-                noisev = Variable(noise)  # totally freeze G, training D
-            fake_data = autograd.Variable(aG(noisev).data)
+                noisev = noise  # totally freeze G, training D
+            fake_data = aG(noisev).detach()
             end = timer(); print(f'---gen G elapsed time: {end-start}')
             start = timer()
             batch = next(dataiter, None)
             if batch is None:
                 dataiter = iter(dataloader)
                 batch = dataiter.next()
-            r_image = batch[0] #batch[1] contains labels
-            r_label = batch[1]
+            real_data = batch[0] #batch[1] contains labels
+            real_data.requires_grad_(True)
+            real_label = batch[1]
             #print("r_label" + str(r_label))
             end = timer(); print(f'---load real imgs elapsed time: {end-start}')
 
             start = timer()
-            real_data = autograd.Variable(r_image.cuda(),requires_grad=True)
-            #TODO: check load labels
-            real_label = autograd.Variable(r_label.cuda())
+            if cuda_available:
+                real_data = real_data.cuda()
+                real_label = real_label.cuda()
 
             # train with real data
             disc_real, aux_output = aD(real_data)
@@ -257,8 +260,11 @@ def train():
             errD_real = aux_errD_real.mean()
             disc_real = disc_real.mean()
 
+
             # train with fake data
             disc_fake, aux_output = aD(fake_data)
+            #aux_errD_fake = aux_criterion(aux_output, fake_label)
+            #errD_fake = aux_errD_fake.mean()
             disc_fake = disc_fake.mean()
 
             #showMemoryUsage(0)
@@ -268,7 +274,7 @@ def train():
 
             # final disc cost
             disc_cost = disc_fake - disc_real + gradient_penalty
-            disc_acgan = errD_real
+            disc_acgan = errD_real #+ errD_fake
             (disc_cost + ACGAN_SCALE*disc_acgan).backward()
             w_dist = disc_fake  - disc_real
             optimizer_d.step()
@@ -317,7 +323,7 @@ def train():
                 if cuda_available:
                	    imgs = imgs.cuda()
                 with torch.no_grad():
-            	    imgs_v = autograd.Variable(imgs)
+            	    imgs_v = imgs
 
                 D, _ = aD(imgs_v)
                 _dev_disc_cost = -D.mean().cpu().data.numpy()

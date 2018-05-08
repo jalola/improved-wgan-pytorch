@@ -15,6 +15,7 @@ from tensorboardX import SummaryWriter
 import pdb
 import gpustat
 
+import models.dcgan as dcgan
 from models.wgan import *
 
 import torch
@@ -23,18 +24,15 @@ from torch import nn
 from torch import autograd
 from torch import optim
 from torchvision import transforms, datasets
-from torch.autograd import Variable, grad
+from torch.autograd import grad
 from timeit import default_timer as timer
 
 import torch.nn.init as init
 
-#DATA_DIR = '/home/datasets/imagenets/train_64x64/'
-#VAL_DIR = '/home/datasets/imagenets/valid_64x64/'
-
 # lsun lmdb data set can be download via https://github.com/fyu/lsun
-DATA_DIR = '/home/datasets/lsun'
-VAL_DIR = '/home/datasets/lsun'
-IMAGE_DATA_SET = 'lsun' # change this to something else, e.g. 'imagenets' or 'raw' if your data is just a folder of raw images. If you use lmdb, you'll need to write the loader by yourself, see load_data
+DATA_DIR = '/datasets/lsun'
+VAL_DIR = '/datasets/lsun'
+IMAGE_DATA_SET = 'lsun' # change this to something else, e.g. 'imagenets' or 'raw' if your data is just a folder of raw images. If you use lmdb, you'll need to write the loader by yourself
 TRAINING_CLASS = ['bedroom_train'] # ignore this if you are not training on lsun, or if you want to train on other classes of lsun, then change it accordingly
 VAL_CLASS = ['bedroom_val'] # ignore this if you are not training on lsun, or if you want to train on other classes of lsun, then change it accordingly
 
@@ -43,14 +41,14 @@ if len(DATA_DIR) == 0:
 
 RESTORE_MODE = False # if True, it will load saved model from OUT_PATH and continue to train
 START_ITER = 0 # starting iteration 
-OUTPUT_PATH = '/path/to/store/result/' # output path where result (.e.g drawing images, cost, chart) will be stored
+OUTPUT_PATH = '/path/to/output/' # output path where result (.e.g drawing images, cost, chart) will be stored
 MODE = 'wgan-gp' # dcgan, wgan
 DIM = 64 # Model dimensionality
 CRITIC_ITERS = 5 # How many iterations to train the critic for
 GENER_ITERS = 1
 N_GPUS = 1 # Number of GPUs
 BATCH_SIZE = 64# Batch size. Must be a multiple of N_GPUS
-END_ITER = 200000 # How many iterations to train for
+END_ITER = 100000 # How many iterations to train for
 LAMBDA = 10 # Gradient penalty lambda hyperparameter
 OUTPUT_DIM = 64*64*3 # Number of pixels in each image
 
@@ -64,16 +62,16 @@ def weights_init(m):
     if isinstance(m, MyConvo2d): 
         if m.conv.weight is not None:
             if m.he_init:
-                init.kaiming_uniform(m.conv.weight)
+                init.kaiming_uniform_(m.conv.weight)
             else:
-                init.xavier_uniform(m.conv.weight)
+                init.xavier_uniform_(m.conv.weight)
         if m.conv.bias is not None:
-            init.constant(m.conv.bias, 0.0)
+            init.constant_(m.conv.bias, 0.0)
     if isinstance(m, nn.Linear):
         if m.weight is not None:
-            init.xavier_uniform(m.weight)
+            init.xavier_uniform_(m.weight)
         if m.bias is not None:
-            init.constant(m.bias, 0.0)
+            init.constant_(m.bias, 0.0)
 
 def load_data(path_to_folder, classes):
     data_transform = transforms.Compose([
@@ -98,14 +96,15 @@ def val_data_loader():
 def calc_gradient_penalty(netD, real_data, fake_data):
     alpha = torch.rand(BATCH_SIZE, 1)
     alpha = alpha.expand(BATCH_SIZE, int(real_data.nelement()/BATCH_SIZE)).contiguous()
-    alpha = alpha.view(BATCH_SIZE,3,64,64)
+    alpha = alpha.view(BATCH_SIZE, 3, DIM, DIM)
     alpha = alpha.cuda() if cuda_available else alpha
-
-    interpolates = alpha * real_data.data + ((1 - alpha) * fake_data.data)
+    
+    fake_data = fake_data.view(BATCH_SIZE, 3, DIM, DIM)
+    interpolates = alpha * real_data.detach() + ((1 - alpha) * fake_data.detach())
 
     if cuda_available:
         interpolates = interpolates.cuda()
-    interpolates = autograd.Variable(interpolates, requires_grad=True)
+    interpolates.requires_grad_(True)
 
     disc_interpolates = netD(interpolates)
 
@@ -121,7 +120,9 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 def generate_image(netG, noise=None):
     if noise is None:
         noise = gen_rand_noise()
-    noisev = autograd.Variable(noise, volatile=True)
+
+    with torch.no_grad():
+    	noisev = noise 
     samples = netG(noisev)
     samples = samples.view(BATCH_SIZE, 3, 64, 64)
     samples = samples * 0.5 + 0.5
@@ -151,6 +152,15 @@ else:
         aG = GoodGenerator(64,64*64*3)
         aD = GoodDiscriminator(64)
         OLDGAN = False
+    elif MODE == 'dcgan':
+        aG = FCGenerator()
+        aD = DCGANDiscriminator()
+        OLDGAN = False
+    else:
+        aG = dcgan.DCGAN_G(DIM, 128, 3, 64, 1, 0)
+        aD = dcgan.DCGAN_D(DIM, 128, 3, 64, 1, 0)
+        OLDGAN= True
+    
     aG.apply(weights_init)
     aD.apply(weights_init)
 
@@ -176,15 +186,15 @@ def train():
         start = timer()
         #---------------------TRAIN G------------------------
         for p in aD.parameters():
-            p.requires_grad = False  # freeze D
+            p.requires_grad_(False)  # freeze D
 
         gen_cost = None
         for i in range(GENER_ITERS):
             print("Generator iters: " + str(i))
             aG.zero_grad()
             noise = gen_rand_noise()
-            noisev = Variable(noise, requires_grad=True)
-            fake_data = aG(noisev)
+            noise.requires_grad_(True)
+            fake_data = aG(noise)
             gen_cost = aD(fake_data)
             gen_cost = gen_cost.mean()
             gen_cost.backward(mone)
@@ -195,7 +205,7 @@ def train():
         print(f'---train G elapsed time: {end - start}')
         #---------------------TRAIN D------------------------
         for p in aD.parameters():  # reset requires_grad
-            p.requires_grad = True  # they are set to False below in training G
+            p.requires_grad_(True)  # they are set to False below in training G
         for i in range(CRITIC_ITERS):
             print("Critic iter: " + str(i))
             
@@ -205,8 +215,8 @@ def train():
             # gen fake data and load real data
             noise = gen_rand_noise()
             with torch.no_grad():
-                noisev = Variable(noise)  # totally freeze G, training D
-            fake_data = autograd.Variable(aG(noisev).data)
+                noisev = noise  # totally freeze G, training D
+            fake_data = aG(noisev).detach()
             end = timer(); print(f'---gen G elapsed time: {end-start}')
             start = timer()
             batch = next(dataiter, None)
@@ -214,14 +224,9 @@ def train():
                 dataiter = iter(dataloader)
                 batch = dataiter.next()
             batch = batch[0] #batch[1] contains labels
-            _some_real_data = batch.cuda() #TODO: modify load_data for each loading
+            real_data = batch.cuda() #TODO: modify load_data for each loading
             end = timer(); print(f'---load real imgs elapsed time: {end-start}')
             start = timer()
-            #pdb.set_trace()
-            #a_real_batch = _some_real_data.reshape(BATCH_SIZE, 3, 64, 64).transpose(0, 2, 3, 1)
-            #a_real_batch = _some_real_data.permute(0, 2, 3, 1)
-            a_real_batch = _some_real_data
-            real_data = autograd.Variable(a_real_batch,requires_grad=True)
 
             # train with real data
             disc_real = aD(real_data)
@@ -279,7 +284,7 @@ def train():
                 if cuda_available:
                	    imgs = imgs.cuda()
                 with torch.no_grad():
-            	    imgs_v = autograd.Variable(imgs)
+            	    imgs_v = imgs
 
                 D = aD(imgs_v)
                 _dev_disc_cost = -D.mean().cpu().data.numpy()
