@@ -97,20 +97,18 @@ def calc_gradient_penalty(netD, real_data, fake_data):
     alpha = torch.rand(BATCH_SIZE, 1)
     alpha = alpha.expand(BATCH_SIZE, int(real_data.nelement()/BATCH_SIZE)).contiguous()
     alpha = alpha.view(BATCH_SIZE, 3, DIM, DIM)
-    alpha = alpha.cuda() if cuda_available else alpha
+    alpha = alpha.to(device)
     
     fake_data = fake_data.view(BATCH_SIZE, 3, DIM, DIM)
     interpolates = alpha * real_data.detach() + ((1 - alpha) * fake_data.detach())
 
-    if cuda_available:
-        interpolates = interpolates.cuda()
+    interpolates = interpolates.to(device)
     interpolates.requires_grad_(True)
 
     disc_interpolates = netD(interpolates)
 
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if cuda_available else torch.ones(
-                                  disc_interpolates.size()),
+                              grad_outputs=torch.ones(disc_interpolates.size()).to(device),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
     gradients = gradients.view(gradients.size(0), -1)                              
@@ -136,12 +134,12 @@ def gen_rand_noise():
         noise.resize_(BATCH_SIZE,128,1,1).normal_(0,1)
     else:
         noise = torch.randn(BATCH_SIZE, 128)
-    if cuda_available:
-        noise = noise.cuda()
+    noise = noise.to(device)
 
     return noise
 
 cuda_available = torch.cuda.is_available()
+device = torch.device("cuda" if cuda_available else "cpu")
 fixed_noise = gen_rand_noise() 
 
 if RESTORE_MODE:
@@ -152,6 +150,14 @@ else:
         aG = GoodGenerator(64,64*64*3)
         aD = GoodDiscriminator(64)
         OLDGAN = False
+    elif MODE == 'dcgan':
+        aG = FCGenerator()
+        aD = DCGANDiscriminator()
+        OLDGAN = False
+    else:
+        aG = dcgan.DCGAN_G(DIM, 128, 3, 64, 1, 0)
+        aD = dcgan.DCGAN_D(DIM, 128, 3, 64, 1, 0)
+        OLDGAN= True
     
     aG.apply(weights_init)
     aD.apply(weights_init)
@@ -161,11 +167,10 @@ optimizer_g = torch.optim.Adam(aG.parameters(), lr=LR, betas=(0,0.9))
 optimizer_d = torch.optim.Adam(aD.parameters(), lr=LR, betas=(0,0.9))
 one = torch.FloatTensor([1])
 mone = one * -1
-if cuda_available:
-    aG = aG.cuda()
-    aD = aD.cuda()
-    one = one.cuda()
-    mone = mone.cuda()
+aG = aG.to(device)
+aD = aD.to(device)
+one = one.to(device)
+mone = mone.to(device)
 
 writer = SummaryWriter()
 #Reference: https://github.com/caogang/wgan-gp/blob/master/gan_cifar10.py
@@ -216,7 +221,7 @@ def train():
                 dataiter = iter(dataloader)
                 batch = dataiter.next()
             batch = batch[0] #batch[1] contains labels
-            real_data = batch.cuda() #TODO: modify load_data for each loading
+            real_data = batch.to(device) #TODO: modify load_data for each loading
             end = timer(); print(f'---load real imgs elapsed time: {end-start}')
             start = timer()
 
@@ -273,8 +278,7 @@ def train():
             dev_disc_costs = []
             for _, images in enumerate(val_loader):
                 imgs = torch.Tensor(images[0])
-                if cuda_available:
-               	    imgs = imgs.cuda()
+               	imgs = imgs.to(device)
                 with torch.no_grad():
             	    imgs_v = imgs
 

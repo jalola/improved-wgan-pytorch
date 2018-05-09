@@ -33,6 +33,7 @@ import torch.nn.init as init
 DATA_DIR = '/datasets/lsun'
 VAL_DIR = '/datasets/lsun'
 
+
 IMAGE_DATA_SET = 'lsun' #change this to something else, e.g. 'imagenets' or 'raw' if your data is just a folder of raw images. 
 #If you use lmdb, you'll need to write the loader by yourself, see load_data
 TRAINING_CLASS = ['dining_room_train', 'bridge_train', 'restaurant_train', 'tower_train'] 
@@ -96,20 +97,18 @@ def calc_gradient_penalty(netD, real_data, fake_data):
     alpha = torch.rand(BATCH_SIZE, 1)
     alpha = alpha.expand(BATCH_SIZE, int(real_data.nelement()/BATCH_SIZE)).contiguous()
     alpha = alpha.view(BATCH_SIZE, 3, DIM, DIM)
-    alpha = alpha.cuda() if cuda_available else alpha
+    alpha = alpha.to(device)
 
     fake_data = fake_data.view(BATCH_SIZE, 3, DIM, DIM)
     interpolates = alpha * real_data.detach() + ((1 - alpha) * fake_data.detach())
 
-    if cuda_available:
-        interpolates = interpolates.cuda()
+    interpolates = interpolates.to(device)
     interpolates.requires_grad_(True)   
 
     disc_interpolates, _ = netD(interpolates)
 
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if cuda_available else torch.ones(
-                                  disc_interpolates.size()),
+                              grad_outputs=torch.ones(disc_interpolates.size()).to(device),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
     gradients = gradients.view(gradients.size(0), -1)                              
@@ -141,13 +140,13 @@ def gen_rand_noise_with_label(label=None):
     noise[np.arange(BATCH_SIZE), :NUM_CLASSES] = prefix[np.arange(BATCH_SIZE)]
 
     noise = torch.from_numpy(noise).float()
-    if cuda_available:
-        noise = noise.cuda()
+    noise = noise.to(device)
 
     return noise
 
 
 cuda_available = torch.cuda.is_available()
+device = torch.device("cuda" if cuda_available else "cpu")
 fixed_label = []
 for c in range(BATCH_SIZE):
     fixed_label.append(c%NUM_CLASSES)
@@ -161,6 +160,14 @@ else:
         aG = GoodGenerator(64,64*64*3)
         aD = GoodDiscriminator(64, NUM_CLASSES)
         OLDGAN = False
+    elif MODE == 'dcgan':
+        aG = FCGenerator()
+        aD = DCGANDiscriminator()
+        OLDGAN = False
+    else:
+        aG = dcgan.DCGAN_G(DIM, 128, 3, 64, 1, 0)
+        aD = dcgan.DCGAN_D(DIM, 128, 3, 64, 1, 0)
+        OLDGAN= True
     
     aG.apply(weights_init)
     aD.apply(weights_init)
@@ -173,11 +180,10 @@ aux_criterion = nn.CrossEntropyLoss() # nn.NLLLoss()
 
 one = torch.FloatTensor([1])
 mone = one * -1
-if cuda_available:
-    aG = aG.cuda()
-    aD = aD.cuda()
-    one = one.cuda()
-    mone = mone.cuda()
+aG = aG.to(device)
+aD = aD.to(device)
+one = one.to(device)
+mone = mone.to(device)
 
 writer = SummaryWriter()
 #Reference: https://github.com/caogang/wgan-gp/blob/master/gan_cifar10.py
@@ -204,8 +210,7 @@ def train():
             gen_cost, gen_aux_output = aD(fake_data)
 
             aux_label = torch.from_numpy(f_label).long()
-            if cuda_available:
-                aux_label = aux_label.cuda()
+            aux_label = aux_label.to(device)
             aux_errG = aux_criterion(gen_aux_output, aux_label).mean()
             gen_cost = -gen_cost.mean()
             g_cost = ACGAN_SCALE_G*aux_errG + gen_cost
@@ -242,9 +247,8 @@ def train():
             end = timer(); print(f'---load real imgs elapsed time: {end-start}')
 
             start = timer()
-            if cuda_available:
-                real_data = real_data.cuda()
-                real_label = real_label.cuda()
+            real_data = real_data.to(device)
+            real_label = real_label.to(device)
 
             # train with real data
             disc_real, aux_output = aD(real_data)
@@ -312,8 +316,7 @@ def train():
             dev_disc_costs = []
             for _, images in enumerate(val_loader):
                 imgs = torch.Tensor(images[0])
-                if cuda_available:
-               	    imgs = imgs.cuda()
+               	imgs = imgs.to(device)
                 with torch.no_grad():
             	    imgs_v = imgs
 

@@ -36,6 +36,11 @@ Sample 1            |  Sample 2
 # Testing
 During the implementation of this model, we built a test module to compare the result between original model (Tensorflow) and our model (Pytorch) for every layer we implemented. It is available at [compare-tensorflow-pytorch](https://github.com/jalola/compare-tensorflow-pytorch)
 
+# TensorboardX
+Results such as costs, generated images (every 200 iters) for tensorboard will be written to `./runs` folder.
+
+To display the results to tensorboard, run: `tensorboard --logdir runs`
+
 # Acknowledgements
 
 * [igul222/improved_wgan_training](https://github.com/igul222/improved_wgan_training)
