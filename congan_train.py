@@ -8,9 +8,8 @@ import argparse
 import numpy as np
 #import sklearn.datasets
 
-import tflibtorch as lib
-import tflibtorch.save_images
-import tflibtorch.plot
+import libs as lib
+import libs.plot
 from tensorboardX import SummaryWriter
 
 import pdb
