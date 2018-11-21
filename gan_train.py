@@ -30,11 +30,17 @@ from timeit import default_timer as timer
 import torch.nn.init as init
 
 # lsun lmdb data set can be download via https://github.com/fyu/lsun
-DATA_DIR = '/datasets/lsun'
+# 64x64 ImageNet at http://image-net.org/small/download.php
+DATA_DIR = '/datasets/lsun' # Replace your image data path here
 VAL_DIR = '/datasets/lsun'
-IMAGE_DATA_SET = 'lsun' # change this to something else, e.g. 'imagenets' or 'raw' if your data is just a folder of raw images. If you use lmdb, you'll need to write the loader by yourself
-TRAINING_CLASS = ['bedroom_train'] # ignore this if you are not training on lsun, or if you want to train on other classes of lsun, then change it accordingly
-VAL_CLASS = ['bedroom_val'] # ignore this if you are not training on lsun, or if you want to train on other classes of lsun, then change it accordingly
+IMAGE_DATA_SET = 'lsun' 
+# change this to something else, e.g. 'imagenets' or 'raw' if your data is just a folder of raw images. 
+# Example: 
+# IMAGE_DATA_SET = 'raw'
+# If you use lmdb, you'll need to write the loader by yourself. Please check load_data function
+
+TRAINING_CLASS = ['bedroom_train'] # IGNORE this if you are NOT training on lsun, or if you want to train on other classes of lsun, then change it accordingly
+VAL_CLASS = ['bedroom_val'] # IGNORE this if you are NOT training on lsun, or if you want to train on other classes of lsun, then change it accordingly
 
 if len(DATA_DIR) == 0:
     raise Exception('Please specify path to data directory in gan_64x64.py!')
@@ -42,7 +48,7 @@ if len(DATA_DIR) == 0:
 RESTORE_MODE = False # if True, it will load saved model from OUT_PATH and continue to train
 START_ITER = 0 # starting iteration 
 OUTPUT_PATH = '/path/to/output/' # output path where result (.e.g drawing images, cost, chart) will be stored
-MODE = 'wgan-gp' # dcgan, wgan
+# MODE = 'wgan-gp'
 DIM = 64 # Model dimensionality
 CRITIC_ITERS = 5 # How many iterations to train the critic for
 GENER_ITERS = 1
@@ -126,14 +132,8 @@ def generate_image(netG, noise=None):
     samples = samples * 0.5 + 0.5
     return samples
 
-OLDGAN = False
-
 def gen_rand_noise():
-    if OLDGAN:
-        noise = torch.FloatTensor(BATCH_SIZE,128,1,1)
-        noise.resize_(BATCH_SIZE,128,1,1).normal_(0,1)
-    else:
-        noise = torch.randn(BATCH_SIZE, 128)
+    noise = torch.randn(BATCH_SIZE, 128)
     noise = noise.to(device)
 
     return noise
@@ -146,18 +146,8 @@ if RESTORE_MODE:
     aG = torch.load(OUTPUT_PATH + "generator.pt")
     aD = torch.load(OUTPUT_PATH + "discriminator.pt")
 else:
-    if MODE == 'wgan-gp':
-        aG = GoodGenerator(64,64*64*3)
-        aD = GoodDiscriminator(64)
-        OLDGAN = False
-    elif MODE == 'dcgan':
-        aG = FCGenerator()
-        aD = DCGANDiscriminator()
-        OLDGAN = False
-    else:
-        aG = dcgan.DCGAN_G(DIM, 128, 3, 64, 1, 0)
-        aD = dcgan.DCGAN_D(DIM, 128, 3, 64, 1, 0)
-        OLDGAN= True
+    aG = GoodGenerator(64,64*64*3)
+    aD = GoodDiscriminator(64)
     
     aG.apply(weights_init)
     aD.apply(weights_init)
@@ -244,7 +234,7 @@ def train():
             w_dist = disc_fake  - disc_real
             optimizer_d.step()
             #------------------VISUALIZATION----------
-            if i == CRITIC_ITERS-1 and not OLDGAN:
+            if i == CRITIC_ITERS-1:
                 writer.add_scalar('data/disc_cost', disc_cost, iteration)
                 #writer.add_scalar('data/disc_fake', disc_fake, iteration)
                 #writer.add_scalar('data/disc_real', disc_real, iteration)
