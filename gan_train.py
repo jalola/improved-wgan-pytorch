@@ -15,7 +15,6 @@ from tensorboardX import SummaryWriter
 import pdb
 import gpustat
 
-import models.dcgan as dcgan
 from models.wgan import *
 
 import torch
