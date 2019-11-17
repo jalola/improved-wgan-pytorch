@@ -1,8 +1,7 @@
 from torch import nn
 from torch.autograd import grad
 import torch
-DIM=64
-OUTPUT_DIM=64*64*3
+import pdb
 
 class MyConvo2d(nn.Module):
     def __init__(self, input_dim, output_dim, kernel_size, he_init = True,  stride = 1, bias = True):
@@ -74,7 +73,7 @@ class UpSampleConv(nn.Module):
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, input_dim, output_dim, kernel_size, resample=None, hw=DIM):
+    def __init__(self, input_dim, output_dim, kernel_size, resample=None, hw=64):
         super(ResidualBlock, self).__init__()
 
         self.input_dim = input_dim
@@ -129,45 +128,15 @@ class ResidualBlock(nn.Module):
 
         return shortcut + output
 
-class ReLULayer(nn.Module):
-    def __init__(self, n_in, n_out):
-        super(ReLULayer, self).__init__()
-        self.n_in = n_in
-        self.n_out = n_out
-        self.linear = nn.Linear(n_in, n_out)
-        self.relu = nn.ReLU()
-
-    def forward(self, input):
-        output = self.linear(input)
-        output = self.relu(output)
-        return output
-
-class FCGenerator(nn.Module):
-    def __init__(self, FC_DIM=512):
-        super(FCGenerator, self).__init__()
-        self.relulayer1 = ReLULayer(128, FC_DIM)
-        self.relulayer2 = ReLULayer(FC_DIM, FC_DIM)
-        self.relulayer3 = ReLULayer(FC_DIM, FC_DIM)
-        self.relulayer4 = ReLULayer(FC_DIM, FC_DIM)
-        self.linear = nn.Linear(FC_DIM, OUTPUT_DIM)
-        self.tanh = nn.Tanh()
-
-    def forward(self, input):
-        output = self.relulayer1(input)
-        output = self.relulayer2(output)
-        output = self.relulayer3(output)
-        output = self.relulayer4(output)
-        output = self.linear(output)
-        output = self.tanh(output)
-        return output
 
 class GoodGenerator(nn.Module):
-    def __init__(self, dim=DIM,output_dim=OUTPUT_DIM):
+    def __init__(self, dim=64, output_dim=3*64*64):
         super(GoodGenerator, self).__init__()
 
         self.dim = dim
 
-        self.ln1 = nn.Linear(128, 4*4*8*self.dim)
+        self.ssize = self.dim // 16
+        self.ln1 = nn.Linear(128, self.ssize*self.ssize*8*self.dim)
         self.rb1 = ResidualBlock(8*self.dim, 8*self.dim, 3, resample = 'up')
         self.rb2 = ResidualBlock(8*self.dim, 4*self.dim, 3, resample = 'up')
         self.rb3 = ResidualBlock(4*self.dim, 2*self.dim, 3, resample = 'up')
@@ -180,7 +149,7 @@ class GoodGenerator(nn.Module):
 
     def forward(self, input):
         output = self.ln1(input.contiguous())
-        output = output.view(-1, 8*self.dim, 4, 4)
+        output = output.view(-1, 8*self.dim, self.ssize, self.ssize)
         output = self.rb1(output)
         output = self.rb2(output)
         output = self.rb3(output)
@@ -190,31 +159,32 @@ class GoodGenerator(nn.Module):
         output = self.relu(output)
         output = self.conv1(output)
         output = self.tanh(output)
-        output = output.view(-1, OUTPUT_DIM)
+        output = output.view(-1, 3 * self.dim * self.dim)
         return output
 
 class GoodDiscriminator(nn.Module):
-    def __init__(self, dim=DIM):
+    def __init__(self, dim=64):
         super(GoodDiscriminator, self).__init__()
 
         self.dim = dim
 
+        self.ssize = self.dim // 16
         self.conv1 = MyConvo2d(3, self.dim, 3, he_init = False)
-        self.rb1 = ResidualBlock(self.dim, 2*self.dim, 3, resample = 'down', hw=DIM)
-        self.rb2 = ResidualBlock(2*self.dim, 4*self.dim, 3, resample = 'down', hw=int(DIM/2))
-        self.rb3 = ResidualBlock(4*self.dim, 8*self.dim, 3, resample = 'down', hw=int(DIM/4))
-        self.rb4 = ResidualBlock(8*self.dim, 8*self.dim, 3, resample = 'down', hw=int(DIM/8))
-        self.ln1 = nn.Linear(4*4*8*self.dim, 1)
+        self.rb1 = ResidualBlock(self.dim, 2*self.dim, 3, resample = 'down', hw=self.dim)
+        self.rb2 = ResidualBlock(2*self.dim, 4*self.dim, 3, resample = 'down', hw=int(self.dim/2))
+        self.rb3 = ResidualBlock(4*self.dim, 8*self.dim, 3, resample = 'down', hw=int(self.dim/4))
+        self.rb4 = ResidualBlock(8*self.dim, 8*self.dim, 3, resample = 'down', hw=int(self.dim/8))
+        self.ln1 = nn.Linear(self.ssize*self.ssize*8*self.dim, 1)
 
     def forward(self, input):
         output = input.contiguous()
-        output = output.view(-1, 3, DIM, DIM)
+        output = output.view(-1, 3, self.dim, self.dim)
         output = self.conv1(output)
         output = self.rb1(output)
         output = self.rb2(output)
         output = self.rb3(output)
         output = self.rb4(output)
-        output = output.view(-1, 4*4*8*self.dim)
+        output = output.view(-1, self.ssize*self.ssize*8*self.dim)
         output = self.ln1(output)
         output = output.view(-1)
         return output
