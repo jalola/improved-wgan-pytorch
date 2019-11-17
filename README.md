@@ -3,36 +3,31 @@
 This is a Pytorch implementation of [`gan_64x64.py`](https://github.com/igul222/improved_wgan_training/blob/master/gan_64x64.py) from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training).
 
 # To do:
-- [ ] Support parameters in cli
-- [ ] Add requirements.txt
+- [x] Support parameters in cli *
+- [x] Add requirements.txt *
 - [ ] Add Dockerfile if possible
-- [ ] Multiple GPUs
-- [ ] Clean up code, remove unused code
+- [x] Multiple GPUs *
+- [x] Clean up code, remove unused code *
 
-
-# Prerequisites
-* Python >= 3.6
-* [Pytorch v0.4.0](https://github.com/pytorch/pytorch)
-* Numpy
-* SciPy
-* tensorboardX ([installation here](https://github.com/lanpa/tensorboard-pytorch)). It is very convenient to see costs and results during training with TensorboardX for Pytorch
-* TensorFlow for tensorboardX
+**\*** not ready for conditional gan yet
 
 # Installation
 
 * Example:
-- Fresh training
+
+**Fresh training**
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python train.py --train_dir /path/to/train --validation_dir /path/to/validation/ --output_path /path/to/output/ --dim 64 --saving_step 300 --num_workers 8
 ```
-- Continued training:
+
+**Continued training:**
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python train.py --train_dir /path/to/train --validation_dir /path/to/validation/ --output_path /path/to/output/ --dim 64 --saving_step 300 --num_workers 8 --restore_mode --start_iter 5000
 ```
 
 # Model
 
-* `gan_train.py`: This model is mainly based on `GoodGenerator` and `GoodDiscriminator` of `gan_64x64.py` model from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training). It has been trained on LSUN dataset for around 100k iters.
+* `train.py`: This model is mainly based on `GoodGenerator` and `GoodDiscriminator` of `gan_64x64.py` model from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training). It has been trained on LSUN dataset for around 100k iters.
 * `congan_train.py`: ACGAN implementation, trained on 4 classes of LSUN dataset
 
 # Result
