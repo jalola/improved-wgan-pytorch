@@ -2,6 +2,14 @@
 
 This is a Pytorch implementation of [`gan_64x64.py`](https://github.com/igul222/improved_wgan_training/blob/master/gan_64x64.py) from [Improved Training of Wasserstein GANs](https://github.com/igul222/improved_wgan_training).
 
+# To do:
+- [ ] Support parameters in cli
+- [ ] Add requirements.txt
+- [ ] Add Dockerfile if possible
+- [ ] Multiple GPUs
+- [ ] Clean up code, remove unused code
+
+
 # Prerequisites
 * Python >= 3.6
 * [Pytorch v0.4.0](https://github.com/pytorch/pytorch)
