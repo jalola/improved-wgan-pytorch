@@ -11,7 +11,7 @@ This is a Pytorch implementation of [`gan_64x64.py`](https://github.com/igul222/
 
 **\*** not ready for conditional gan yet
 
-# Installation
+# Run
 
 * Example:
 
