@@ -97,7 +97,8 @@ def train(train_dir, validation_dir, image_data_type, output_path, dim, lr, crit
 
     optimizer_g = torch.optim.Adam(aG.parameters(), lr=lr, betas=(0,0.9))
     optimizer_d = torch.optim.Adam(aD.parameters(), lr=lr, betas=(0,0.9))
-    one = torch.FloatTensor([1])
+    if torch.__version__ > "1.6":
+        one = torch.tensor(1, dtype=torch.float)
     mone = one * -1
     # aG = aG.to(device)
     # aD = aD.to(device)
